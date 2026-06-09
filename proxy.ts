@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getTokenCookie, getUserData } from "./lib/cookies";
 const publicRoutes = ["/login", "/register"];
-const adminRoutes = ["/dashboard"];
+const adminRoutes = ["/dashboard", "/admin"];
 
 export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
@@ -13,7 +13,20 @@ export async function proxy(request: NextRequest) {
   );
   if (!token && !isPublicRutes) {
     return NextResponse.redirect(new URL("/login", request.url)); // redirect to /login
-  }
+    }
+    
+    const isAdminRoute = adminRoutes.some(route => pathname.startsWith(route));
+    if (token && user) {
+        if (isAdminRoute && user.role !== 'admin') {
+            return NextResponse.redirect(new URL("/unauthorized", request.url));
+        }
+    }
+
+//if already logged in redirect login/register
+if (token && isPublicRutes) {
+        return NextResponse.redirect(new URL("/dashboard", request.url)); // redirect to /
+        
+    }
 
   // apply rulest
   return NextResponse.next();
@@ -21,5 +34,5 @@ export async function proxy(request: NextRequest) {
 
 // apply to whatever path you want to proxy
 export const config = {
-  matcher: ["/dashboard", "/register"],
+  matcher: ["/dashboard", "/register", "/login", "/admin/:path*"] // all admin routes],
 };
